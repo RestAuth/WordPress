@@ -61,10 +61,10 @@ class RestAuthOptionsPage {
         $output = $input;
         $output['db_version'] = $this->plugin->db_version;
         $output['server'] = isset($input['server']) ? $input['server'] : 'http://localhost';
-        $output['allow_wp_auth'] = isset($input['allow_wp_auth']) ? (bool) $input['allow_wp_auth'] : true;
-        $output['auto_create_user'] = isset($input['auto_create_user']) ? (bool) $input['auto_create_user'] : true;
-        $output['auto_sync_groups'] = isset($input['auto_sync_groups']) ? (bool) $input['auto_sync_groups'] : true;
-        $output['auto_sync_props'] = isset($input['auto_sync_props']) ? (bool) $input['auto_sync_props'] : true;
+        $output['allow_wp_auth'] = isset($input['allow_wp_auth']) ? (bool) $input['allow_wp_auth'] : false;
+        $output['auto_create_user'] = isset($input['auto_create_user']) ? (bool) $input['auto_create_user'] : false;
+        $output['auto_sync_groups'] = isset($input['auto_sync_groups']) ? (bool) $input['auto_sync_groups'] : false;
+        $output['auto_sync_props'] = isset($input['auto_sync_props']) ? (bool) $input['auto_sync_props'] : false;
 
         return $output;
     }
