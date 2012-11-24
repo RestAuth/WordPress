@@ -105,24 +105,24 @@ class RestAuthOptionsPage {
     }
 
     function _display_option_server() {
-        $server_label = $this->options['server_label'];
-        $this->_display_input_text_field('server_label', $server_label);
+        $server = $this->options['server'];
+        $this->_display_input_text_field('server', $server);
 ?>
 Default is <code>http://localhost</code>, the RestAuth server used in this installation.
 <?php
     }
 
     function _display_option_user() {
-        $user_label = $this->options['user_label'];
-        $this->_display_input_text_field('user_label', $user_label);
+        $user = $this->options['user'];
+        $this->_display_input_text_field('user', $user);
 ?>
 The username used to authenticate with the RestAuth server.
 <?php
     }
 
     function _display_option_password() {
-        $password_label = $this->options['password_label'];
-        $this->_display_input_text_field('password_label', $password_label, 75, true);
+        $password = $this->options['password'];
+        $this->_display_input_text_field('password', $password, 75, true);
 ?>
 The password used to authenticate with the RestAuth server.
 <?php
