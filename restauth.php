@@ -38,17 +38,21 @@ class RestAuthPlugin {
     function __construct() {
         $this->options = get_option($this->option_name);
 
-        # todo: make this configurable via settings pannel
-        $this->conn = new RestAuthConnection(
-            $this->options['server'], $this->options['user'],
-            $this->options['password']);
-
         if (is_admin()) {
             $options_page = new RestAuthOptionsPage($this, $this->option_name, __FILE__, $this->options);
             add_action('admin_init', array($this, 'check_options'));
         }
 
         add_filter('authenticate', array($this, 'authenticate'), 20, 3);
+    }
+
+    private function _get_conn() {
+        if (is_null($this->conn)) {
+            $this->conn = new RestAuthConnection(
+                $this->options['server'], $this->options['user'],
+                $this->options['password']);
+        }
+        return $this->conn;
     }
 
     public function check_options() {
@@ -74,14 +78,8 @@ class RestAuthPlugin {
             'auto_sync_groups' => true,
             'auto_sync_props' => true,
         );
-
+        // do nothing so far...
         if ($current_db_version < 1) {
-            foreach ($default_options as $key => $value) {
-                // Handle migrating existing options from before we stored a db_version
-                if (! isset($this->options[$key])) {
-                    $this->options[$key] = $value;
-                }
-            }
         }
     }
 
