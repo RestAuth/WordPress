@@ -43,6 +43,7 @@ class RestAuthPlugin {
             add_action('admin_init', array($this, 'check_options'));
         }
 
+        add_action('check_passwords', array($this, 'check_passwords'), 20, 3);
         add_filter('authenticate', array($this, 'authenticate'), 20, 3);
     }
 
@@ -91,14 +92,9 @@ class RestAuthPlugin {
             return $user;
         }
 
-        if (array_key_exists($username, $this->usercache)) {
-            $user = $this->usercache[$username];
-        } else {
-            $user = new RestAuthUser($this->_get_conn(), $username);
-            $this->usercache[$username] = $user;
-        }
+        $ra_user = $this->_get_ra_user($username);
 
-        if ($user->verifyPassword($password)) {
+        if ($ra_user->verifyPassword($password)) {
             $user = get_user_by('login', $username);
             if ($user) {
                 return $user;
@@ -113,6 +109,18 @@ class RestAuthPlugin {
     }
 
     /**
+     * Set a new password.
+     *
+     * @todo This also interacts with creating new passwords.
+     */
+    function check_passwords($username, $pass1, $pass2) {
+        if (strcmp($pass1, $pass2) === 0) {
+            $ra_user = $this->_get_ra_user($username);
+            $ra_user->setPassword($pass1);
+        }
+    }
+
+    /**
      * Create a new user
      *
      * @todo get properties from restauth service
@@ -122,6 +130,16 @@ class RestAuthPlugin {
         $user_id = wp_create_user($username, $password);#, $username . ($email_domain ? '@' . $email_domain : ''));
         $user = get_user_by('id', $user_id);
         return $user;
+    }
+
+    private function _get_ra_user($username) {
+        if (array_key_exists($username, $this->usercache)) {
+            return $this->usercache[$username];
+        } else {
+            $user = new RestAuthUser($this->_get_conn(), $username);
+            $this->usercache[$username] = $user;
+            return $user;
+        }
     }
 
 
