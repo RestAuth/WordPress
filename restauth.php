@@ -114,7 +114,7 @@ class RestAuthPlugin {
      * @todo This also interacts with creating new passwords.
      */
     function check_passwords($username, $pass1, $pass2) {
-        if (strcmp($pass1, $pass2) === 0) {
+        if (strlen($pass1) > 0 && strcmp($pass1, $pass2) === 0) {
             $ra_user = $this->_get_ra_user($username);
             $ra_user->setPassword($pass1);
         }
