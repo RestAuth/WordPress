@@ -94,16 +94,19 @@ class RestAuthPlugin {
         if (array_key_exists($username, $this->usercache)) {
             $user = $this->usercache[$username];
         } else {
-            $user = new RestAuthUser($this->conn, $username);
+            $user = new RestAuthUser($this->_get_conn(), $username);
             $this->usercache[$username] = $user;
         }
 
         if ($user->verifyPassword($password)) {
             $user = get_user_by('login', $username);
-            if (!$user) {
+            if ($user) {
+                return $user;
+            } elseif (!$user && $this->options['auto_create_user']) {
                 return $this->_create_user($username);
+            } else {
+                return null;
             }
-            return $user;
         } else {
             return null;
         }
