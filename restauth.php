@@ -26,20 +26,68 @@ License: GPL2
 */
 
 require_once('RestAuth/restauth.php');
+require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'options-page.php');
 
 class RestAuthPlugin {
     private $conn;
     private $usercache = array();
 
+    private $option_name = 'restauth_options';
+    var $db_version = 1;
+
     function __construct() {
+        $this->options = get_option($this->option_name);
+
         # todo: make this configurable via settings pannel
         $this->conn = new RestAuthConnection(
-            'http://[::1]:8000', 'example.com', 'nopass');
+            $this->options['server'], $this->options['user'],
+            $this->options['password']);
 
-        #add_action('wp_authenticate', array($this, 'authenticate'), 10, 2);
+        if (is_admin()) {
+            $options_page = new RestAuthOptionsPage($this, $this->option_name, __FILE__, $this->options);
+            add_action('admin_init', array($this, 'check_options'));
+        }
+
         add_filter('authenticate', array($this, 'authenticate'), 20, 3);
     }
 
+    public function check_options() {
+        if ($this->options === false || ! isset($this->options['db_version']) || $this->options['db_version'] < $this->db_version) {
+            if (! is_array($this->options)) {
+                $this->options = array();
+            }
+
+            $current_db_version = isset($this->options['db_version']) ? $this->options['db_version'] : 0;
+            $this->upgrade($current_db_version);
+            $this->options['db_version'] = $this->db_version;
+            update_option($this->option_name, $this->options);
+        }
+    }
+
+    public function upgrade($current_db_version) {
+        $default_options = array(
+            'server' => 'http://localhost',
+            'user' => '',
+            'password' => '',
+            'allow_wp_auth' => true,
+            'auto_create_user' => true,
+            'auto_sync_groups' => true,
+            'auto_sync_props' => true,
+        );
+
+        if ($current_db_version < 1) {
+            foreach ($default_options as $key => $value) {
+                // Handle migrating existing options from before we stored a db_version
+                if (! isset($this->options[$key])) {
+                    $this->options[$key] = $value;
+                }
+            }
+        }
+    }
+
+    /**
+     * Actually authenticate the user.
+     */
     public function authenticate($user, $username, $password) {
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             return $user;
