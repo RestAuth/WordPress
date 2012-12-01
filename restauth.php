@@ -43,8 +43,22 @@ class RestAuthPlugin {
             add_action('admin_init', array($this, 'check_options'));
         }
 
+        // setting a new password:
         add_action('check_passwords', array($this, 'check_passwords'), 20, 3);
+
+        // authentication
         add_filter('authenticate', array($this, 'authenticate'), 20, 3);
+
+        // load profile_data:
+        add_action('personal_options', array($this, 'fetch_user_profile'), 20, 2);
+//        add_action('edit_user_profile', array($this, 'fetch_user_profile'), 20, 2);
+
+        // update own personal options
+        add_action('personal_options_update',
+            array($this, 'update_user_profile'), 20, 3);
+        // update someone elses profile (admins):
+        add_action('edit_user_profile_update',
+            array($this, 'update_user_profile'), 20, 3);
     }
 
     private function _get_conn() {
@@ -120,6 +134,59 @@ class RestAuthPlugin {
         }
     }
 
+    public function fetch_user_profile($user) {
+        $ra_user = $this->_get_ra_user($user->user_login);
+
+        // fetch properties
+        $ra_props = $ra_user->getProperties();
+
+        // Set properties available locally but not remotely
+        $ra_set_props = array();
+        if (array_key_exists('email', $ra_props)) {
+            $user->user_email = $ra_props['email'];
+        } elseif(isset($user->user_email) && strlen($user->user_email) > 0) {
+            $ra_set_props['email'] = $user->user_email;
+        }
+        if (array_key_exists('first name', $ra_props)) {
+            $user->first_name = $ra_props['first name'];
+        } elseif (isset($user->first_name) && strlen($user->first_name) > 0) {
+            $ra_set_props['first name'] = $user->first_name;
+        }
+        if (array_key_exists('last name', $ra_props)) {
+            $user->last_name = $ra_props['last name'];
+        } elseif (isset($user->last_name) && strlen($user->last_name) > 0) {
+            $ra_set_props['last name'] = $user->last_name;
+        }
+        if (array_key_exists('url', $ra_props)) {
+            $user->user_url = $ra_props['url'];
+        } elseif (isset($user->user_url) && strlen($user->user_url) > 0) {
+            $ra_set_props['url'] = $user->user_url;
+        }
+
+        // finally, set properties that weren't set in RestAuth:
+        if (count($ra_set_props) > 0) {
+            $ra_user->setProperties($ra_set_props);
+        }
+
+        // 2. Set all properties as in the RestAuth server
+        //die('email: ' . $user->user_email);
+    }
+
+    /**
+     * Called when pressing the "update profile" button on the profile page.
+     */
+    public function update_user_profile($userid) {
+        die('calling hook');
+        $user = get_userdata($userid);
+        $ra_user = $this->_get_ra_user($user->user_login);
+
+        die($_POST['email']);
+
+        if (strlen($_POST['email']) > 0 && strcmp($user->email, $_POST['email']) != 0) {
+            $ra_user->setProperty('email', $_POST['email']);
+        }
+    }
+
     /**
      * Create a new user
      *
@@ -132,6 +199,9 @@ class RestAuthPlugin {
         return $user;
     }
 
+    /**
+     * Get a RestAuthUser from a given username.
+     */
     private function _get_ra_user($username) {
         if (array_key_exists($username, $this->usercache)) {
             return $this->usercache[$username];
@@ -157,9 +227,4 @@ class RestAuthPlugin {
 
 $myRestAuthPlugin = new RestAuthPlugin();
 
-#add_action('publish_post', array('RestAuthPlugin', 'send'));
-#
-# or with a class - might be good?
-# $myEmailClass = new emailer();
-# add_action('publish_post', array($myEmailClass, 'send'));
 ?>
