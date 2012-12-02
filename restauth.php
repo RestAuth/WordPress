@@ -75,7 +75,6 @@ class RestAuthPlugin {
     }
 
     public function check_options() {
-        print('check_options<br>');
         if ($this->options === false || ! isset($this->options['db_version']) || $this->options['db_version'] < $this->db_version) {
             print('doing upgrade:<br>');
             if (! is_array($this->options)) {
@@ -98,17 +97,16 @@ class RestAuthPlugin {
             'auto_create_user' => true,
             'auto_sync_groups' => true,
             'auto_sync_props' => true,
-            'global_mappings' => "first_name|first name
+            'global_mappings' => 'first_name|first name
 last_name|last name
 user_email|email
 user_url|url
 aim
 yim
-jabber|jid
-",
-            'local_mappings' => "nickname
+jabber|jid',
+            'local_mappings' => 'nickname
 display_name|display name
-bibliography",
+description',
             'blacklist' => 'user_pass',
         );
         // do nothing so far...
@@ -172,6 +170,7 @@ bibliography",
         // Set properties available locally but not remotely
         $ra_set_props = array();
 
+        // handle global properties:
         foreach ($global_mappings as $key => $ra_key) {
             // filter blacklisted items:
             if (in_array($ra_key, $blacklist)) {
@@ -185,6 +184,18 @@ bibliography",
             // if key exists locally but not remotely, set it there
             } elseif(is_string($user->$key) && strlen($user->$key) > 0)  {
                 $ra_set_props[$ra_key] = $user->$key;
+            }
+        }
+
+        // handle local properties:
+        foreach ($local_mappings as $key => $ra_key) {
+            // filter blacklisted items:
+            if (in_array($ra_key, $blacklist)) {
+                continue;
+            }
+
+            // if key exists remotely, use that value instead:
+            if (array_key_exists($ra_key, $ra_props)) {
             }
         }
 
@@ -273,7 +284,7 @@ bibliography",
             $this->blacklist[] = trim($line);
         }
 
-        if (!in_array('user-pass')) {
+        if (!in_array('user-pass', $this->blacklist)) {
             $this->blacklist[] = 'user_pass';
         }
 
