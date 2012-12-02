@@ -98,12 +98,17 @@ class RestAuthPlugin {
             'auto_create_user' => true,
             'auto_sync_groups' => true,
             'auto_sync_props' => true,
-            'global_mappings' => "user_email|email
-first_name|first name
+            'global_mappings' => "first_name|first name
 last_name|last name
+user_email|email
 user_url|url
-jabber|jid",
-            'local_mappings' => "",
+aim|aim
+yim|yim
+jabber|jid
+",
+            'local_mappings' => "nickname|nickname
+display_name|display name
+bibliography|bibliography",
             'blacklist' => 'user_pass',
         );
         // do nothing so far...
