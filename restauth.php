@@ -164,9 +164,6 @@ description',
         $local_mappings = $this->_local_mappings();
         $blacklist = $this->_blacklist();
 
-        // Set properties available locally but not remotely
-        $ra_set_props = array();
-
         // handle global properties:
         foreach ($global_mappings as $key => $ra_key) {
             // filter blacklisted items:
@@ -193,11 +190,6 @@ description',
                 $user->$key = $ra_props[$local_key];
             }
         }
-
-        // finally, set properties that weren't set in RestAuth:
-        if (count($ra_set_props) > 0) {
-            $ra_user->setProperties($ra_set_props);
-        }
     }
 
     /**
@@ -207,7 +199,7 @@ description',
         &$set_props, &$rm_props)
     {
         // if set and different to old prop, set
-        if (is_string($user->$key) && strlen($user->$key)) {
+        if (is_string($user->$key) && strlen($user->$key) > 0) {
             if (!array_key_exists($ra_key, $ra_props)
                 || $ra_props[$ra_key] != $user->$key)
             {
