@@ -63,7 +63,6 @@ class RestAuthPlugin {
 
         // update someone elses profile (admins):
         //add_action('edit_user_profile_update',
-        //    array($this, 'update_user_profile'), 20, 3);
     }
 
     private function _get_conn() {
@@ -302,21 +301,6 @@ jabber|jid",
             foreach ($ra_rm_props as $prop_name) {
                 $ra_user->removeProperty($prop_name);
             }
-        }
-    }
-
-    /**
-     * Called when pressing the "update profile" button on the profile page.
-     */
-    public function update_user_profile($userid) {
-        die('calling hook');
-        $user = get_userdata($userid);
-        $ra_user = $this->_get_ra_user($user->user_login);
-
-        die($_POST['email']);
-
-        if (strlen($_POST['email']) > 0 && strcmp($user->email, $_POST['email']) != 0) {
-            $ra_user->setProperty('email', $_POST['email']);
         }
     }
 
