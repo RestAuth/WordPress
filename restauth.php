@@ -256,6 +256,11 @@ jabber|jid",
         foreach (explode("\n", $this->options['blacklist']) as $line) {
             $this->blacklist[] = trim($line);
         }
+
+        if (!in_array('user-pass')) {
+            $this->blacklist[] = 'user_pass';
+        }
+
         return $this->blacklist;
     }
 
