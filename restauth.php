@@ -186,6 +186,7 @@ description',
         }
 
         $local_mappings = $this->_local_mappings();
+        $blacklist = $this->_blacklist();
 
         $this->global_mappings = array();
         foreach (explode("\n", $this->options['global_mappings']) as $line) {
@@ -196,7 +197,9 @@ description',
             } else {
                 list($local, $remote) = explode('|', $trimmed);
             }
-            if (!array_key_exists($local, $local_mappings)) {
+            if (!array_key_exists($local, $local_mappings)
+                && !in_array($local, $blacklist))
+            {
                 $this->global_mappings[$local] = $remote;
             }
         }
@@ -211,6 +214,8 @@ description',
             return $this->local_mappings;
         }
 
+        $blacklist = $this->_blacklist();
+
         $this->local_mappings = array();
         foreach (explode("\n", $this->options['local_mappings']) as $line) {
             $trimmed = trim($line);
@@ -220,7 +225,9 @@ description',
             } else {
                 list($local, $remote) = explode('|', $trimmed);
             }
-            $this->local_mappings[$local] = $remote;
+            if (!in_array($local, $blacklist)) {
+                $this->local_mappings[$local] = $remote;
+            }
         }
         return $this->local_mappings;
     }
@@ -260,20 +267,15 @@ description',
 
         $global_mappings = $this->_global_mappings();
         $local_mappings = $this->_local_mappings();
-        $blacklist = $this->_blacklist();
 
         foreach ($global_mappings as $key => $ra_key) {
-            if (!in_array($key, $blacklist)) {
-                $this->_handle_prop($user, $key, $ra_key, $ra_props,
-                    $ra_set_props, $ra_rm_props);
-            }
+            $this->_handle_prop($user, $key, $ra_key, $ra_props,
+                $ra_set_props, $ra_rm_props);
         }
         foreach ($local_mappings as $key => $ra_key) {
-            if (!in_array($key, $blacklist)) {
-                $ra_key = 'wordpress ' . $ra_key;
-                $this->_handle_prop($user, $key, $ra_key, $ra_props,
-                    $ra_set_props, $ra_rm_props);
-            }
+            $ra_key = 'wordpress ' . $ra_key;
+            $this->_handle_prop($user, $key, $ra_key, $ra_props,
+                $ra_set_props, $ra_rm_props);
         }
 
         if (count($ra_set_props) > 0) {
@@ -330,12 +332,8 @@ description',
 
         $ra_user = $this->_get_ra_user($user->user_login);
         $ra_props = $ra_user->getProperties();
-        $blacklist = $this->_blacklist();
 
         foreach ($this->_global_mappings() as $key => $ra_key) {
-            if (in_array($key, $backlist)) {
-                continue;
-            }
             if (!is_string($ra_props[$ra_key])) {
                 $newuser->$key = '';
             } elseif ($ra_props[$ra_key] != $user->$key) {
@@ -344,10 +342,6 @@ description',
         }
 
         foreach ($this->_local_mappings() as $key => $ra_key) {
-            if (in_array($key, $blacklist)) {
-                continue;
-            }
-
             $ra_key = 'wordpress ' . $ra_key;
 
             if (!is_string($ra_props[$ra_key])) {
