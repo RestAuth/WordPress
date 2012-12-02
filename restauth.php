@@ -51,14 +51,15 @@ class RestAuthPlugin {
 
         // load profile_data:
         add_action('personal_options', array($this, 'fetch_user_profile'), 20, 2);
+        // load someone elses profile (TODO: really?)::
 //        add_action('edit_user_profile', array($this, 'fetch_user_profile'), 20, 2);
 
         // update own personal options
-        add_action('personal_options_update',
-            array($this, 'update_user_profile'), 20, 3);
+        add_action('profile_update', array($this, 'update_profile'), 20, 2);
+
         // update someone elses profile (admins):
-        add_action('edit_user_profile_update',
-            array($this, 'update_user_profile'), 20, 3);
+        //add_action('edit_user_profile_update',
+        //    array($this, 'update_user_profile'), 20, 3);
     }
 
     private function _get_conn() {
@@ -134,42 +135,132 @@ class RestAuthPlugin {
         }
     }
 
+    /**
+     * Update local profile before viewing it.
+     *
+     * Called with profile.php and (most likely) user-edit.php
+     *
+     * @TODO: Investigate behaviour with user-edit.php
+     * @todo: update $user->user_registered information
+     */
     public function fetch_user_profile($user) {
         $ra_user = $this->_get_ra_user($user->user_login);
 
         // fetch properties
         $ra_props = $ra_user->getProperties();
+        $global_mappings = $this->_global_mappings();
+        $local_mappings = $this->_local_mappings();
+        $blacklist = $this->_blacklist();
 
         // Set properties available locally but not remotely
         $ra_set_props = array();
-        if (array_key_exists('email', $ra_props)) {
-            $user->user_email = $ra_props['email'];
-        } elseif(isset($user->user_email) && strlen($user->user_email) > 0) {
-            $ra_set_props['email'] = $user->user_email;
-        }
-        if (array_key_exists('first name', $ra_props)) {
-            $user->first_name = $ra_props['first name'];
-        } elseif (isset($user->first_name) && strlen($user->first_name) > 0) {
-            $ra_set_props['first name'] = $user->first_name;
-        }
-        if (array_key_exists('last name', $ra_props)) {
-            $user->last_name = $ra_props['last name'];
-        } elseif (isset($user->last_name) && strlen($user->last_name) > 0) {
-            $ra_set_props['last name'] = $user->last_name;
-        }
-        if (array_key_exists('url', $ra_props)) {
-            $user->user_url = $ra_props['url'];
-        } elseif (isset($user->user_url) && strlen($user->user_url) > 0) {
-            $ra_set_props['url'] = $user->user_url;
+
+        foreach ($global_mappings as $key => $ra_key) {
+            // filter blacklisted items:
+            if (in_array($ra_key, $blacklist)) {
+                continue;
+            }
+
+            // if key exists remotely, use that value instead:
+            if (array_key_exists($ra_key, $ra_props)) {
+                $user->$key = $ra_props[$ra_key];
+
+            // if key exists locally but not remotely, set it there
+            } elseif(is_string($user->$key) && strlen($user->$key) > 0)  {
+                $ra_set_props[$ra_key] = $user->$key;
+            }
         }
 
         // finally, set properties that weren't set in RestAuth:
         if (count($ra_set_props) > 0) {
             $ra_user->setProperties($ra_set_props);
         }
+    }
 
-        // 2. Set all properties as in the RestAuth server
-        //die('email: ' . $user->user_email);
+    /**
+     * Helper function to decide if a property should be update or removed.
+     */
+    private function _handle_prop($user, $key, $ra_key, $ra_props,
+        &$set_props, &$rm_props)
+    {
+        // if set and different to old prop, set
+        if (is_string($user->$key) && strlen($user->$key)) {
+            if (!array_key_exists($ra_key, $ra_props)
+                || $ra_props[$ra_key] != $user->$key)
+            {
+                $set_props[$ra_key] = $user->$key;
+            }
+        } elseif(array_key_exists($ra_key, $ra_props)) {
+            $rm_props[] = $ra_key;
+        }
+    }
+
+    /**
+     * A mapping defining how local user properties map to RestAuth props.
+     */
+    private function _global_mappings() {
+        return array(
+            'user_email' => 'email',
+            'first_name' => 'first name',
+            'last_name' => 'last name',
+            'user_url' => 'url',
+            'jabber' => 'jid',
+        );
+    }
+
+    /**
+     * A mapping defining how local user properties map to RestAuth props.
+     */
+    private function _local_mappings() {
+        return array();
+    }
+
+    /**
+     * A list of properties that should never be synced to RestAuth.
+     */
+    private function _blacklist() {
+        return array();
+    }
+
+    /**
+     * Called when updating a profile.
+     *
+     * @todo: this hook also receiveds group-information.
+     */
+    public function update_profile($userid, $old_data) {
+        $user = get_userdata($userid);
+        $ra_user = $this->_get_ra_user($user->user_login);
+        $ra_props = $ra_user->getProperties();
+
+        $ra_set_props = array();
+        $ra_rm_props = array();
+
+        $global_mappings = $this->_global_mappings();
+        $local_mappings = $this->_local_mappings();
+        $blacklist = $this->_blacklist();
+
+        foreach ($global_mappings as $key => $ra_key) {
+            if (!in_array($key, $blacklist)) {
+                $this->_handle_prop($user, $key, $ra_key, $ra_props,
+                    $ra_set_props, $ra_rm_props);
+            }
+        }
+        foreach ($local_mappings as $key => $ra_key) {
+            if (!in_array($key, $blacklist)) {
+                $ra_key = 'wordpress ' . $ra_key;
+                $this->_handle_prop($user, $key, $ra_key, $ra_props,
+                    $ra_set_props, $ra_rm_props);
+            }
+        }
+
+        if (count($ra_set_props) > 0) {
+            $ra_user->setProperties($ra_set_props);
+        }
+        if (count($ra_rm_props) > 0) {
+            foreach ($ra_rm_props as $prop_name) {
+                $ra_user->removeProperty($prop_name);
+            }
+        }
     }
 
     /**
