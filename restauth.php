@@ -156,40 +156,7 @@ description',
      * @todo: update $user->user_registered information
      */
     public function fetch_user_profile($user) {
-        $ra_user = $this->_get_ra_user($user->user_login);
-
-        // fetch properties
-        $ra_props = $ra_user->getProperties();
-        $global_mappings = $this->_global_mappings();
-        $local_mappings = $this->_local_mappings();
-        $blacklist = $this->_blacklist();
-
-        // handle global properties:
-        foreach ($global_mappings as $key => $ra_key) {
-            // filter blacklisted items:
-            if (in_array($ra_key, $blacklist)) {
-                continue;
-            }
-
-            // if key exists remotely, use that value instead:
-            if (array_key_exists($ra_key, $ra_props)) {
-                $user->$key = $ra_props[$ra_key];
-            }
-        }
-
-        // handle local properties:
-        foreach ($local_mappings as $key => $ra_key) {
-            // filter blacklisted items:
-            if (in_array($ra_key, $blacklist)) {
-                continue;
-            }
-
-            $local_key = 'wordpress' . $ra_key;
-            // if key exists remotely, use that value instead:
-            if (array_key_exists($local_key, $ra_props)) {
-                $user->$key = $ra_props[$local_key];
-            }
-        }
+        $this->_update_user($user);
     }
 
     /**
@@ -354,6 +321,9 @@ description',
      * @todo: Actually handle roles.
      */
     private function _update_user($user) {
+        // $newuser is an object that is populated with properties just like in
+        // edit_user(). wp_update_user is called at the bottom of this
+        // function.
         $newuser = new stdClass;
         $newuser->ID = $user->ID;
         $newuser->user_login = $user->user_login;
@@ -387,6 +357,7 @@ description',
             }
         }
 
+        // finally call wp_update_user
         wp_update_user(get_object_vars($newuser));
     }
 
