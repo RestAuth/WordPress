@@ -130,12 +130,9 @@ description',
                 return $user;
             } elseif (!$user && $this->options['auto_create_user']) {
                 return $this->_create_user($username);
-            } else {
-                return null;
             }
-        } else {
-            return null;
         }
+        return null;
     }
 
     /**
