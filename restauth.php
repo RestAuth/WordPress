@@ -31,8 +31,12 @@ require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'options-page.php');
 class RestAuthPlugin {
     private $conn;
     private $usercache = array();
+    private $global_mappings;
+    private $local_mappings;
+    private $blacklist;
 
     private $option_name = 'restauth_options';
+    // TODO: reset this to one before release
     var $db_version = 1;
 
     function __construct() {
@@ -72,7 +76,9 @@ class RestAuthPlugin {
     }
 
     public function check_options() {
+        print('check_options<br>');
         if ($this->options === false || ! isset($this->options['db_version']) || $this->options['db_version'] < $this->db_version) {
+            print('doing upgrade:<br>');
             if (! is_array($this->options)) {
                 $this->options = array();
             }
@@ -93,6 +99,13 @@ class RestAuthPlugin {
             'auto_create_user' => true,
             'auto_sync_groups' => true,
             'auto_sync_props' => true,
+            'global_mappings' => "user_email|email
+first_name|first name
+last_name|last name
+user_url|url
+jabber|jid",
+            'local_mappings' => "",
+            'blacklist' => 'user_pass',
         );
         // do nothing so far...
         if ($current_db_version < 1) {
@@ -199,27 +212,51 @@ class RestAuthPlugin {
      * A mapping defining how local user properties map to RestAuth props.
      */
     private function _global_mappings() {
-        return array(
-            'user_email' => 'email',
-            'first_name' => 'first name',
-            'last_name' => 'last name',
-            'user_url' => 'url',
-            'jabber' => 'jid',
-        );
+        if (is_array($this->global_mappings)) {
+            return $this->global_mappings;
+        }
+
+        $local_mappings = $this->_local_mappings();
+
+        $this->global_mappings = array();
+        foreach (explode("\n", $this->options['global_mappings']) as $line) {
+            list($local, $remote) = explode('|', trim($line));
+            if (!array_key_exists($local, $local_mappings)) {
+                $this->global_mappings[$local] = $remote;
+            }
+        }
+        return $this->global_mappings;
     }
 
     /**
      * A mapping defining how local user properties map to RestAuth props.
      */
     private function _local_mappings() {
-        return array();
+        if (is_array($this->local_mappings)) {
+            return $this->local_mappings;
+        }
+
+        $this->local_mappings = array();
+        foreach (explode("\n", $this->options['local_mappings']) as $line) {
+            list($local, $remote) = explode('|', trim($line));
+            $this->local_mappings[$local] = $remote;
+        }
+        return $this->local_mappings;
     }
 
     /**
      * A list of properties that should never be synced to RestAuth.
      */
     private function _blacklist() {
-        return array();
+        if (is_array($this->blacklist)) {
+            return $this->blacklist;
+        }
+
+        $this->blacklist = array();
+        foreach (explode("\n", $this->options['blacklist']) as $line) {
+            $this->blacklist[] = trim($line);
+        }
+        return $this->blacklist;
     }
 
     /**
