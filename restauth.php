@@ -224,7 +224,13 @@ bibliography|bibliography",
 
         $this->global_mappings = array();
         foreach (explode("\n", $this->options['global_mappings']) as $line) {
-            list($local, $remote) = explode('|', trim($line));
+            $trimmed = trim($line);
+            if (strpos($trimmed, '|') === false) {
+                $local = $trimmed;
+                $remote = $trimmed;
+            } else {
+                list($local, $remote) = explode('|', $trimmed);
+            }
             if (!array_key_exists($local, $local_mappings)) {
                 $this->global_mappings[$local] = $remote;
             }
@@ -242,7 +248,13 @@ bibliography|bibliography",
 
         $this->local_mappings = array();
         foreach (explode("\n", $this->options['local_mappings']) as $line) {
-            list($local, $remote) = explode('|', trim($line));
+            $trimmed = trim($line);
+            if (strpos($trimmed, '|') === false) {
+                $local = $trimmed;
+                $remote = $trimmed;
+            } else {
+                list($local, $remote) = explode('|', $trimmed);
+            }
             $this->local_mappings[$local] = $remote;
         }
         return $this->local_mappings;
