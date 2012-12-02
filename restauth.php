@@ -328,6 +328,8 @@ description',
     private function _create_user($username) {
         $user_id = wp_create_user($username, $password);#, $username . ($email_domain ? '@' . $email_domain : ''));
         $user = get_user_by('id', $user_id);
+        $this->_update_user($user);
+
         return $user;
     }
 
@@ -344,6 +346,49 @@ description',
         }
     }
 
+    /**
+     * Update a users properties and roles from RestAuth.
+     *
+     * @seealso edit_user() in wp-admin/includes/user.php
+     *
+     * @todo: Actually handle roles.
+     */
+    private function _update_user($user) {
+        $newuser = new stdClass;
+        $newuser->ID = $user->ID;
+        $newuser->user_login = $user->user_login;
+
+        $ra_user = $this->_get_ra_user($user->user_login);
+        $ra_props = $ra_user->getProperties();
+        $blacklist = $this->_blacklist();
+
+        foreach ($this->_global_mappings() as $key => $ra_key) {
+            if (in_array($key, $backlist)) {
+                continue;
+            }
+            if (!is_string($ra_props[$ra_key])) {
+                $newuser->$key = '';
+            } elseif ($ra_props[$ra_key] != $user->$key) {
+                $newuser->$key = $ra_props[$ra_key];
+            }
+        }
+
+        foreach ($this->_local_mappings() as $key => $ra_key) {
+            if (in_array($key, $blacklist)) {
+                continue;
+            }
+
+            $ra_key = 'wordpress ' . $ra_key;
+
+            if (!is_string($ra_props[$ra_key])) {
+                $newuser->$key = '';
+            } elseif ($ra_props[$ra_key] != $user->$key) {
+                $newuser->$key = $ra_props[$ra_key];
+            }
+        }
+
+        wp_update_user(get_object_vars($newuser));
+    }
 
     # Reference: http://codex.wordpress.org/Plugin_API/Action_Reference
     #http://codex.wordpress.org/Plugin_API/Action_Reference/delete_user
