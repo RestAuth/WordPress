@@ -180,10 +180,6 @@ description',
             // if key exists remotely, use that value instead:
             if (array_key_exists($ra_key, $ra_props)) {
                 $user->$key = $ra_props[$ra_key];
-
-            // if key exists locally but not remotely, set it there
-            } elseif(is_string($user->$key) && strlen($user->$key) > 0)  {
-                $ra_set_props[$ra_key] = $user->$key;
             }
         }
 
@@ -194,8 +190,10 @@ description',
                 continue;
             }
 
+            $local_key = 'wordpress' . $ra_key;
             // if key exists remotely, use that value instead:
-            if (array_key_exists($ra_key, $ra_props)) {
+            if (array_key_exists($local_key, $ra_props)) {
+                $user->$key = $ra_props[$local_key];
             }
         }
 
