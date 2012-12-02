@@ -102,13 +102,13 @@ class RestAuthPlugin {
 last_name|last name
 user_email|email
 user_url|url
-aim|aim
-yim|yim
+aim
+yim
 jabber|jid
 ",
-            'local_mappings' => "nickname|nickname
+            'local_mappings' => "nickname
 display_name|display name
-bibliography|bibliography",
+bibliography",
             'blacklist' => 'user_pass',
         );
         // do nothing so far...
