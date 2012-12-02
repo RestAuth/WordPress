@@ -31,12 +31,11 @@ require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'options-page.php');
 class RestAuthPlugin {
     private $conn;
     private $usercache = array();
-    private $global_mappings;
-    private $local_mappings;
-    private $blacklist;
+    private $_global_mappings;
+    private $_local_mappings;
+    private $_blacklist;
 
     private $option_name = 'restauth_options';
-    // TODO: reset this to one before release
     var $db_version = 1;
 
     function __construct() {
@@ -180,15 +179,15 @@ description',
     /**
      * A mapping defining how local user properties map to RestAuth props.
      */
-    private function _global_mappings() {
-        if (is_array($this->global_mappings)) {
-            return $this->global_mappings;
+    private function get_global_mappings() {
+        if (is_array($this->_global_mappings)) {
+            return $this->_global_mappings;
         }
 
-        $local_mappings = $this->_local_mappings();
-        $blacklist = $this->_blacklist();
+        $local_mappings = $this->get_local_mappings();
+        $blacklist = $this->get_blacklist();
 
-        $this->global_mappings = array();
+        $this->_global_mappings = array();
         foreach (explode("\n", $this->options['global_mappings']) as $line) {
             $trimmed = trim($line);
             if (strpos($trimmed, '|') === false) {
@@ -200,23 +199,23 @@ description',
             if (!array_key_exists($local, $local_mappings)
                 && !in_array($local, $blacklist))
             {
-                $this->global_mappings[$local] = $remote;
+                $this->_global_mappings[$local] = $remote;
             }
         }
-        return $this->global_mappings;
+        return $this->_global_mappings;
     }
 
     /**
      * A mapping defining how local user properties map to RestAuth props.
      */
-    private function _local_mappings() {
-        if (is_array($this->local_mappings)) {
-            return $this->local_mappings;
+    private function get_local_mappings() {
+        if (is_array($this->_local_mappings)) {
+            return $this->_local_mappings;
         }
 
-        $blacklist = $this->_blacklist();
+        $blacklist = $this->get_blacklist();
 
-        $this->local_mappings = array();
+        $this->_local_mappings = array();
         foreach (explode("\n", $this->options['local_mappings']) as $line) {
             $trimmed = trim($line);
             if (strpos($trimmed, '|') === false) {
@@ -226,30 +225,30 @@ description',
                 list($local, $remote) = explode('|', $trimmed);
             }
             if (!in_array($local, $blacklist)) {
-                $this->local_mappings[$local] = $remote;
+                $this->_local_mappings[$local] = $remote;
             }
         }
-        return $this->local_mappings;
+        return $this->_local_mappings;
     }
 
     /**
      * A list of properties that should never be synced to RestAuth.
      */
-    private function _blacklist() {
-        if (is_array($this->blacklist)) {
-            return $this->blacklist;
+    private function get_blacklist() {
+        if (is_array($this->_blacklist)) {
+            return $this->_blacklist;
         }
 
         $this->blacklist = array();
         foreach (explode("\n", $this->options['blacklist']) as $line) {
-            $this->blacklist[] = trim($line);
+            $this->_blacklist[] = trim($line);
         }
 
         if (!in_array('user-pass', $this->blacklist)) {
-            $this->blacklist[] = 'user_pass';
+            $this->_blacklist[] = 'user_pass';
         }
 
-        return $this->blacklist;
+        return $this->_blacklist;
     }
 
     /**
@@ -265,14 +264,11 @@ description',
         $ra_set_props = array();
         $ra_rm_props = array();
 
-        $global_mappings = $this->_global_mappings();
-        $local_mappings = $this->_local_mappings();
-
-        foreach ($global_mappings as $key => $ra_key) {
+        foreach ($this->get_global_mappings() as $key => $ra_key) {
             $this->_handle_prop($user, $key, $ra_key, $ra_props,
                 $ra_set_props, $ra_rm_props);
         }
-        foreach ($local_mappings as $key => $ra_key) {
+        foreach ($this->get_local_mappings() as $key => $ra_key) {
             $ra_key = 'wordpress ' . $ra_key;
             $this->_handle_prop($user, $key, $ra_key, $ra_props,
                 $ra_set_props, $ra_rm_props);
@@ -333,7 +329,7 @@ description',
         $ra_user = $this->_get_ra_user($user->user_login);
         $ra_props = $ra_user->getProperties();
 
-        foreach ($this->_global_mappings() as $key => $ra_key) {
+        foreach ($this->get_global_mappings() as $key => $ra_key) {
             if (!is_string($ra_props[$ra_key])) {
                 $newuser->$key = '';
             } elseif ($ra_props[$ra_key] != $user->$key) {
@@ -341,7 +337,7 @@ description',
             }
         }
 
-        foreach ($this->_local_mappings() as $key => $ra_key) {
+        foreach ($this->get_local_mappings() as $key => $ra_key) {
             $ra_key = 'wordpress ' . $ra_key;
 
             if (!is_string($ra_props[$ra_key])) {
