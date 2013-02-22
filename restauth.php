@@ -212,10 +212,18 @@ description',
         // set local password, overriding auto-generated password
         $userdata = array();
         $userdata['ID'] = $userid;
-        if ($_POST['password'] !== '') {
+        $userdata['user_login'] = $user->user_login;
+
+        // store password locally if allow_wp_auth or empty string otherwise.
+        // If we don't do this, the randomly generated password stays in the
+        // database.
+        if ($this->options['allow_wp_auth']) {
             $userdata['user_pass'] = $_POST['password'];
+            wp_update_user($userdata);
+        } else {
+            $userdata['user_pass'] = '';
+            wp_insert_user($userdata);
         }
-        $new_user_id = wp_update_user($userdata);
     }
 
     public function remove_email_notification_msg($text) {
