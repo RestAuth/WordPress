@@ -187,7 +187,7 @@ description',
      * - POST wp-login.php?action=register - Register a new user
      */
     public function register($userid) {
-        error_log(register);
+        error_log("register user with id '$user_id'");
         $user = get_user_by('id', $userid);
         $conn = $this->_get_conn();
 
@@ -211,7 +211,7 @@ description',
 
         // set local password, overriding auto-generated password
         $userdata = array();
-        $userdata['ID'] = $user_id;
+        $userdata['ID'] = $userid;
         if ($_POST['password'] !== '') {
             $userdata['user_pass'] = $_POST['password'];
         }
