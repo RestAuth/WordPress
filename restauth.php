@@ -130,6 +130,9 @@ description',
      * Modify the registration form.
      *
      * Adds the password fields in the registration form.
+     *
+     * Called:
+     * - GET wp-login.php?action=register - View registration form
      */
     public function register_form() {
         error_log('register_form');
@@ -151,6 +154,9 @@ description',
      * Verify that a user does not exist so far.
      *
      * Called by the register_post hook.
+     *
+     * Called:
+     * - POST wp-login.php?action=register - Register a new user
      */
     public function pre_register($user_login, $user_email, $errors) {
         error_log('pre_register');
@@ -176,6 +182,9 @@ description',
      * Register a new user.
      *
      * Called by the user_register hook.
+     *
+     * Called:
+     * - POST wp-login.php?action=register - Register a new user
      */
     public function register($userid) {
         error_log(register);
@@ -210,7 +219,6 @@ description',
     }
 
     public function remove_email_notification_msg($text) {
-        error_log('remove_email_notification_msg');
         if ($text == 'A password will be e-mailed to you.') {
             return '';
         }
