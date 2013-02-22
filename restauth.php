@@ -46,21 +46,33 @@ class RestAuthPlugin {
             add_action('admin_init', array($this, 'check_options'));
         }
 
-        // setting a new password:
-        add_action('check_passwords', array($this, 'check_passwords'), 20, 3);
+        // pre-user registration:
+        add_action('register_post', array($this, 'pre_register'), 20, 3);
+
+        // user registration:
+        add_action('user_register', array($this, 'register'));
+
+        // attempt to modify registration form:
+        if(isset($_GET['action']) && $_GET['action'] == 'register'){
+            add_action('register_form', array(&$this, 'register_form'));
+            add_filter( 'gettext', array(&$this, 'remove_email_notification_msg'));
+        }
 
         // authentication
         add_filter('authenticate', array($this, 'authenticate'), 20, 3);
 
+        // setting a new password:
+        add_action('check_passwords', array($this, 'check_passwords'), 20, 3);
+
         // load profile_data:
         add_action('personal_options', array($this, 'fetch_user_profile'), 20, 2);
-        // load someone elses profile (TODO: really?)::
+        // load someone elses profile (TODO: really?):
 //        add_action('edit_user_profile', array($this, 'fetch_user_profile'), 20, 2);
 
         // update own personal options
         add_action('profile_update', array($this, 'update_profile'), 20, 2);
 
-        // update someone elses profile (admins):
+        // update someone elses profile (admins) (TODO: really?:
         //add_action('edit_user_profile_update',
     }
 
@@ -111,6 +123,93 @@ description',
         // do nothing so far...
         if ($current_db_version < 1) {
         }
+    }
+
+    /**
+     * Modify the registration form.
+     *
+     * Adds the password fields in the registration form.
+     */
+    public function register_form() {
+    ?>
+        <p>
+            <label for="password">Password<br/>
+                <input id="password" class="input" type="password" tabindex="30" size="25" value="" name="password" />
+            </label>
+        </p>
+        <p>
+            <label for="repeat_password">Repeat password<br/>
+                <input id="repeat_password" class="input" type="password" tabindex="40" size="25" value="" name="repeat_password" />
+            </label>
+        </p>
+        <?php
+    }
+
+    /**
+     * Verify that a user does not exist so far.
+     *
+     * Called by the register_post hook.
+     */
+    public function pre_register($user_login, $user_email, $errors) {
+        if ( $_POST['pass1'] !== $_POST['pass2'] ) {
+            $errors->add('passwords_not_matched', "<strong>ERROR</strong>: Passwords must match");
+        }
+        if ( strlen( $_POST['pass1'] ) < 8 ) {
+            $errors->add('password_too_short', "<strong>ERROR</strong>: Passwords must be at least eight characters long");
+        }
+
+        $conn = $this->_get_conn();
+        try {
+            RestAuthUser::get($conn, $user_login);
+            // user already exists - we cannot register:
+            $errors->add('username_exists',
+                __( '<strong>ERROR</strong>: This username is already registered, please choose another one.'));
+        } catch (RestAuthResourceNotFound $e) {
+            // user doesn't exist - what we wanted to make sure
+        }
+    }
+
+    /**
+     * Register a new user.
+     *
+     * Called by the user_register hook.
+     */
+    public function register($userid) {
+        $user = get_user_by('id', $userid);
+        $conn = $this->_get_conn();
+
+        $password = $_POST['pass1'];
+
+        $properties = array();
+        foreach ($this->get_global_mappings() as $key => $ra_key) {
+            if (isset($user->$key)) {
+                $properties[$ra_key] = $user->$key;
+            }
+        }
+        foreach ($this->get_local_mappings() as $key => $ra_key) {
+            if (isset($user->$key)) {
+                $properties['wordpress ' . $ra_key] = $user->$key;
+            }
+        }
+
+        $ra_user = RestAuthUser::create(
+            $conn, $user->user_login, $password, $properties);
+        $this->usercache[$user->user_login] = $ra_user;
+
+        // set local password, overriding auto-generated password
+        $userdata = array();
+        $userdata['ID'] = $user_id;
+        if ($_POST['pass1'] !== '') {
+            $userdata['user_pass'] = $_POST['pass1'];
+        }
+        $new_user_id = wp_update_user($userdata);
+    }
+
+    public function remove_email_notification_msg($text) {
+        if ($text == 'A password will be e-mailed to you.') {
+            return '';
+        }
+        return $text;
     }
 
     /**
@@ -287,7 +386,6 @@ description',
     /**
      * Create a new user
      *
-     * @todo get properties from restauth service
      * @todo get roles from restauth service
      */
     private function _create_user($username) {
