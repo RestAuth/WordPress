@@ -154,10 +154,10 @@ description',
      */
     public function pre_register($user_login, $user_email, $errors) {
         error_log('pre_register');
-        if ( $_POST['pass1'] !== $_POST['pass2'] ) {
+        if ( $_POST['password'] !== $_POST['repeat_password'] ) {
             $errors->add('passwords_not_matched', "<strong>ERROR</strong>: Passwords must match");
         }
-        if ( strlen( $_POST['pass1'] ) < 8 ) {
+        if ( strlen( $_POST['password'] ) < 8 ) {
             $errors->add('password_too_short', "<strong>ERROR</strong>: Passwords must be at least eight characters long");
         }
 
@@ -166,7 +166,7 @@ description',
             RestAuthUser::get($conn, $user_login);
             // user already exists - we cannot register:
             $errors->add('username_exists',
-                __( '<strong>ERROR</strong>: This username is already registered, please choose another one.'));
+                '<strong>ERROR</strong>: This username is already registered, please choose another one.');
         } catch (RestAuthResourceNotFound $e) {
             // user doesn't exist - what we wanted to make sure
         }
@@ -221,7 +221,6 @@ description',
      * Actually authenticate the user.
      */
     public function authenticate($user, $username, $password) {
-        error_log("Authenticate: $user, '$username', '$password'");
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             return $user;
         }
