@@ -182,7 +182,7 @@ description',
         $user = get_user_by('id', $userid);
         $conn = $this->_get_conn();
 
-        $password = $_POST['pass1'];
+        $password = $_POST['password'];
 
         $properties = array();
         foreach ($this->get_global_mappings() as $key => $ra_key) {
@@ -203,8 +203,8 @@ description',
         // set local password, overriding auto-generated password
         $userdata = array();
         $userdata['ID'] = $user_id;
-        if ($_POST['pass1'] !== '') {
-            $userdata['user_pass'] = $_POST['pass1'];
+        if ($_POST['password'] !== '') {
+            $userdata['user_pass'] = $_POST['password'];
         }
         $new_user_id = wp_update_user($userdata);
     }
@@ -227,6 +227,7 @@ description',
 
         $ra_user = $this->_get_ra_user($username);
 
+        error_log("authenticating: '$username', '$password'");
         if ($ra_user->verifyPassword($password)) {
             $user = get_user_by('login', $username);
             if ($user) {
@@ -254,9 +255,10 @@ description',
     /**
      * Update local profile before viewing it.
      *
-     * Called with profile.php and (most likely) user-edit.php
+     * Called:
+     * - GET wp-admin/profile.php - View your own profile
+     * - GET wp-admin/user-edit.php - View "Edit User" (view other users profile)
      *
-     * @TODO: Investigate behaviour with user-edit.php
      * @todo: update $user->user_registered information
      */
     public function fetch_user_profile($user) {
