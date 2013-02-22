@@ -65,6 +65,7 @@ class RestAuthPlugin {
         add_action('check_passwords', array($this, 'check_passwords'), 20, 3);
 
         // load profile_data:
+        // Called when viewing your own or someone elses profile
         add_action('personal_options', array($this, 'fetch_user_profile'), 20, 2);
         // load someone elses profile (TODO: really?):
 //        add_action('edit_user_profile', array($this, 'fetch_user_profile'), 20, 2);
@@ -131,6 +132,7 @@ description',
      * Adds the password fields in the registration form.
      */
     public function register_form() {
+        error_log('register_form');
     ?>
         <p>
             <label for="password">Password<br/>
@@ -151,6 +153,7 @@ description',
      * Called by the register_post hook.
      */
     public function pre_register($user_login, $user_email, $errors) {
+        error_log('pre_register');
         if ( $_POST['pass1'] !== $_POST['pass2'] ) {
             $errors->add('passwords_not_matched', "<strong>ERROR</strong>: Passwords must match");
         }
@@ -175,6 +178,7 @@ description',
      * Called by the user_register hook.
      */
     public function register($userid) {
+        error_log(register);
         $user = get_user_by('id', $userid);
         $conn = $this->_get_conn();
 
@@ -206,6 +210,7 @@ description',
     }
 
     public function remove_email_notification_msg($text) {
+        error_log('remove_email_notification_msg');
         if ($text == 'A password will be e-mailed to you.') {
             return '';
         }
@@ -216,6 +221,7 @@ description',
      * Actually authenticate the user.
      */
     public function authenticate($user, $username, $password) {
+        error_log("Authenticate: $user, '$username', '$password'");
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             return $user;
         }
@@ -239,6 +245,7 @@ description',
      * @todo This also interacts with creating new passwords.
      */
     function check_passwords($username, $pass1, $pass2) {
+        error_log("check_passwords '$username', '$pass1', '$pass2'");
         if (strlen($pass1) > 0 && strcmp($pass1, $pass2) === 0) {
             $ra_user = $this->_get_ra_user($username);
             $ra_user->setPassword($pass1);
@@ -254,6 +261,7 @@ description',
      * @todo: update $user->user_registered information
      */
     public function fetch_user_profile($user) {
+        error_log("fetch_user_profile");
         $this->_update_user($user);
     }
 
@@ -353,9 +361,10 @@ description',
     /**
      * Called when updating a profile.
      *
-     * @todo: this hook also receiveds group-information.
+     * @todo: this hook also receives group-information.
      */
     public function update_profile($userid, $old_data) {
+        error_log('update_profile');
         $user = get_userdata($userid);
         $ra_user = $this->_get_ra_user($user->user_login);
         $ra_props = $ra_user->getProperties();
@@ -389,6 +398,8 @@ description',
      * @todo get roles from restauth service
      */
     private function _create_user($username) {
+        error_log("_create_user '$username'");
+
         $user_id = wp_create_user($username, $password);#, $username . ($email_domain ? '@' . $email_domain : ''));
         $user = get_user_by('id', $user_id);
         $this->_update_user($user);
@@ -415,11 +426,14 @@ description',
      * @seealso edit_user() in wp-admin/includes/user.php
      *
      * @todo: Actually handle roles.
+     * @todo: wp_update_user actually triggers update_user, which causes
+     *        another get()
      */
     private function _update_user($user) {
         // $newuser is an object that is populated with properties just like in
         // edit_user(). wp_update_user is called at the bottom of this
         // function.
+        error_log("_update_user: " . $user->user_login);
         $newuser = new stdClass;
         $newuser->ID = $user->ID;
         $newuser->user_login = $user->user_login;
