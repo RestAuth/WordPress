@@ -54,6 +54,7 @@ class RestAuthPlugin {
 
         // update the redirect after registration:
         add_filter('registration_redirect', array($this, 'registration_redirect'));
+        add_filter('login_redirect', array($this, 'login_redirect'));
 
         // attempt to modify registration form:
         if(isset($_GET['action']) && $_GET['action'] == 'register'){
@@ -159,6 +160,25 @@ description',
         } else {
             return $redirect;
         }
+    }
+
+    /**
+     * Set the global user_login variable if $_GET['user'] is set.
+     *
+     * This prefills the login-form with a username, if the appropriate GET
+     * variable is set. This is of course a disgusting misuse of this hook!
+     *
+     * Called:
+     * - GET wp-login.php - Login a user
+     */
+    public function login_redirect($redirect) {
+        global $user_login;
+
+        if (!empty($_GET['user'])) {
+            $user_login = $_GET['user'];
+        }
+
+        return $redirect;
     }
 
     /**
