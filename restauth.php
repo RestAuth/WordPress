@@ -43,14 +43,14 @@ class RestAuthPlugin {
 
         if (is_admin()) {
             $options_page = new RestAuthOptionsPage($this, $this->option_name, __FILE__, $this->options);
-            add_action('admin_init', array($this, 'check_options'));
+            add_action('admin_init', array($this, 'admin_init'));
         }
 
         // pre-user registration:
-        add_action('register_post', array($this, 'pre_register'), 20, 3);
+        add_action('register_post', array($this, 'register_post'), 20, 3);
 
         // user registration:
-        add_action('user_register', array($this, 'register'));
+        add_action('user_register', array($this, 'user_register'));
 
         // update the redirect after registration:
         add_filter('registration_redirect', array($this, 'registration_redirect'));
@@ -70,12 +70,12 @@ class RestAuthPlugin {
 
         // load profile_data:
         // Called when viewing your own or someone elses profile
-        add_action('personal_options', array($this, 'fetch_user_profile'), 20, 2);
+        add_action('personal_options', array($this, 'personal_options'), 20, 2);
         // load someone elses profile (TODO: really?):
-//        add_action('edit_user_profile', array($this, 'fetch_user_profile'), 20, 2);
+//        add_action('edit_user_profile', array($this, 'personal_options'), 20, 2);
 
         // update own personal options
-        add_action('profile_update', array($this, 'update_profile'), 20, 2);
+        add_action('profile_update', array($this, 'profile_update'), 20, 2);
 
         // update someone elses profile (admins) (TODO: really?:
         //add_action('edit_user_profile_update',
@@ -90,7 +90,7 @@ class RestAuthPlugin {
         return $this->conn;
     }
 
-    public function check_options() {
+    public function admin_init() {
         if ($this->options === false || ! isset($this->options['db_version']) || $this->options['db_version'] < $this->db_version) {
             print('doing upgrade:<br>');
             if (! is_array($this->options)) {
@@ -200,8 +200,8 @@ description',
      * Called:
      * - POST wp-login.php?action=register - Register a new user
      */
-    public function pre_register($user_login, $user_email, $errors) {
-        error_log('pre_register');
+    public function register_post($user_login, $user_email, $errors) {
+        error_log('register_post');
         if ( $_POST['password'] !== $_POST['repeat_password'] ) {
             $errors->add('passwords_not_matched', "<strong>ERROR</strong>: Passwords must match");
         }
@@ -232,14 +232,12 @@ description',
      * current hash is for the auto-generated one), otherwise we set the
      * user_pass field to an empty value.
      *
-     * Called by the user_register hook.
-     *
      * Called:
      * - POST wp-login.php?action=register - Register a new user
      *
      * @see: wp_insert_user in wp-includes/user.php.
      */
-    public function register($userid) {
+    public function user_register($userid) {
         global $wpdb;
 
         $user = get_user_by('id', $userid);
@@ -326,8 +324,8 @@ description',
      *
      * @todo: update $user->user_registered information
      */
-    public function fetch_user_profile($user) {
-        error_log("fetch_user_profile");
+    public function personal_options($user) {
+        error_log("personal_options");
         $this->_update_user($user);
     }
 
@@ -429,8 +427,8 @@ description',
      *
      * @todo: this hook also receives group-information.
      */
-    public function update_profile($userid, $old_data) {
-        error_log('update_profile');
+    public function profile_update($userid, $old_data) {
+        error_log('profile_update');
         $user = get_userdata($userid);
         $ra_user = $this->_get_ra_user($user->user_login);
         $ra_props = $ra_user->getProperties();
