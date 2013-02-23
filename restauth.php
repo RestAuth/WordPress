@@ -299,6 +299,7 @@ description',
         if ($ra_user->verifyPassword($password)) {
             $user = get_user_by('login', $username);
             if ($user) {
+                $this->_update_user($user);
                 return $user;
             } elseif (!$user && $this->options['auto_create_user']) {
                 return $this->_create_user($username, $password);
@@ -526,37 +527,29 @@ description',
      *        another get()
      */
     private function _update_user($user) {
-        // $newuser is an object that is populated with properties just like in
-        // edit_user(). wp_update_user is called at the bottom of this
-        // function.
-        error_log("_update_user: " . $user->user_login);
-        $newuser = new stdClass;
-        $newuser->ID = $user->ID;
-        $newuser->user_login = $user->user_login;
+        global $wpdb;
+        error_log("_update_user (" . $_SERVER['REQUEST_METHOD'] . "): " . $user->user_login);
 
-        $ra_user = $this->_get_ra_user($user->user_login);
-        $ra_props = $ra_user->getProperties();
+        $userdata = array(
+            'user_login' => $user->user_login,
+        );
 
-        foreach ($this->get_global_mappings() as $key => $ra_key) {
-            if (!is_string($ra_props[$ra_key])) {
-                $newuser->$key = '';
-            } elseif ($ra_props[$ra_key] != $user->$key) {
-                $newuser->$key = $ra_props[$ra_key];
-            }
+        $userdata = $this->_get_updated_userdata($userdata);
+
+        // update properties of user object:
+        foreach ($userdata as $key => $value) {
+            $user->$key = $value;
         }
 
-        foreach ($this->get_local_mappings() as $key => $ra_key) {
-            $ra_key = 'wordpress ' . $ra_key;
+        // insert normal user data (directly in the wp_users table):
+        $normal_userdata = $this->_get_normal_userdata($userdata);
+        $wpdb->update($wpdb->users, $normal_userdata, array('ID' => $user->ID));
 
-            if (!is_string($ra_props[$ra_key])) {
-                $newuser->$key = '';
-            } elseif ($ra_props[$ra_key] != $user->$key) {
-                $newuser->$key = $ra_props[$ra_key];
-            }
+        // set metadata (the user_metadata table):
+        $meta_userdata = $this->_get_meta_userdata($userdata);
+        foreach ($meta_userdata as $key => $value) {
+            update_user_meta($user->ID, $key, $value);
         }
-
-        // finally call wp_update_user
-        wp_update_user(get_object_vars($newuser));
     }
 
     /**
