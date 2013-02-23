@@ -181,13 +181,23 @@ description',
     /**
      * Register a new user.
      *
+     * This function creates a user in RestAuth and sets any properties.
+     *
+     * If allow_wp_auth is set, updates the locally stored hash (since the
+     * current hash is for the auto-generated one), otherwise we set the
+     * user_pass field to an empty value.
+     *
      * Called by the user_register hook.
      *
      * Called:
      * - POST wp-login.php?action=register - Register a new user
+     *
+     * @see: wp_insert_user in wp-includes/user.php.
      */
     public function register($userid) {
-        error_log("register user with id '$user_id'");
+        global $wpdb;
+
+        error_log("register user with id '$userid'");
         $user = get_user_by('id', $userid);
         $conn = $this->_get_conn();
 
@@ -209,21 +219,16 @@ description',
             $conn, $user->user_login, $password, $properties);
         $this->usercache[$user->user_login] = $ra_user;
 
-        // set local password, overriding auto-generated password
-        $userdata = array();
-        $userdata['ID'] = $userid;
-        $userdata['user_login'] = $user->user_login;
-
         // store password locally if allow_wp_auth or empty string otherwise.
         // If we don't do this, the randomly generated password stays in the
         // database.
+        $userdata = array();
         if ($this->options['allow_wp_auth']) {
-            $userdata['user_pass'] = $_POST['password'];
-            wp_update_user($userdata);
+            $userdata['user_pass'] = wp_hash_password($password);
         } else {
             $userdata['user_pass'] = '';
-            wp_insert_user($userdata);
         }
+        $wpdb->update($wpdb->users, $userdata, array('ID' => $userid));
     }
 
     public function remove_email_notification_msg($text) {
