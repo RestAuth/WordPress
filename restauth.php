@@ -498,4 +498,29 @@ description',
 
 $myRestAuthPlugin = new RestAuthPlugin();
 
+/**
+ * Send email notifications to admins.
+ *
+ * This function is a direct copy of the unplugged version that without
+ * the last few lines that send a notification to the user (since we do not
+ * auto-generate a password, we don't have to send it to the user via an
+ * unsecure connection).
+ */
+function wp_new_user_notification($user_id, $plaintext_pass = '') {
+    $user = new WP_User($user_id);
+
+    $user_login = stripslashes($user->user_login);
+    $user_email = stripslashes($user->user_email);
+
+    // The blogname option is escaped with esc_html on the way into the database in sanitize_option
+    // we want to reverse this for the plain text arena of emails.
+    $blogname = wp_specialchars_decode(get_option('blogname'), ENT_QUOTES);
+
+    $message  = sprintf(__('New user registration on your site %s:'), $blogname) . "\r\n\r\n";
+    $message .= sprintf(__('Username: %s'), $user_login) . "\r\n\r\n";
+    $message .= sprintf(__('E-mail: %s'), $user_email) . "\r\n";
+
+    @wp_mail(get_option('admin_email'), sprintf(__('[%s] New User Registration'), $blogname), $message);
+}
+
 ?>
