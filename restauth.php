@@ -52,10 +52,13 @@ class RestAuthPlugin {
         // user registration:
         add_action('user_register', array($this, 'register'));
 
+        // update the redirect after registration:
+        add_filter('registration_redirect', array($this, 'registration_redirect'));
+
         // attempt to modify registration form:
         if(isset($_GET['action']) && $_GET['action'] == 'register'){
             add_action('register_form', array(&$this, 'register_form'));
-            add_filter( 'gettext', array(&$this, 'remove_email_notification_msg'));
+            add_filter('gettext', array(&$this, 'remove_email_notification_msg'));
         }
 
         // authentication
@@ -148,6 +151,14 @@ description',
             </label>
         </p>
         <?php
+    }
+
+    public function registration_redirect($redirect) {
+        if ($redirect === "") {
+            return 'wp-login.php';
+        } else {
+            return $redirect;
+        }
     }
 
     /**
