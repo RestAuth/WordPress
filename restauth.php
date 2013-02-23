@@ -59,7 +59,7 @@ class RestAuthPlugin {
         // attempt to modify registration form:
         if(isset($_GET['action']) && $_GET['action'] == 'register'){
             add_action('register_form', array(&$this, 'register_form'));
-//            add_filter('gettext', array(&$this, 'remove_email_notification_msg'));
+            add_filter('gettext', array(&$this, 'remove_email_notification_msg'));
         }
 
         // authentication
@@ -158,7 +158,7 @@ description',
      * Set the redirect url upon registration.
      *
      * Called:
-     * - GET wp-login.php?action=register - Register a new user
+     * - GET wp-login.php?action=register - View registration form
      */
     public function registration_redirect($redirect) {
         if ($redirect === "") {
@@ -194,8 +194,6 @@ description',
 
     /**
      * Verify that a user does not exist so far.
-     *
-     * Called by the register_post hook.
      *
      * Called:
      * - POST wp-login.php?action=register - Register a new user
@@ -273,6 +271,9 @@ description',
         $wpdb->update($wpdb->users, $userdata, array('ID' => $userid));
     }
 
+    /**
+     * Remove the note that a password will be emailed during registration.
+     */
     public function remove_email_notification_msg($text) {
         if ($text == 'A password will be e-mailed to you.') {
             return '';
