@@ -209,14 +209,17 @@ description',
             $errors->add('password_too_short', "<strong>ERROR</strong>: Passwords must be at least eight characters long");
         }
 
-        $conn = $this->_get_conn();
-        try {
-            RestAuthUser::get($conn, $user_login);
-            // user already exists - we cannot register:
-            $errors->add('username_exists',
-                '<strong>ERROR</strong>: This username is already registered, please choose another one.');
-        } catch (RestAuthResourceNotFound $e) {
-            // user doesn't exist - what we wanted to make sure
+        // only call RestAuth if local check didn't fail already:
+        if (! in_array('username_exists', $errors->get_error_codes())) {
+            $conn = $this->_get_conn();
+            try {
+                RestAuthUser::get($conn, $user_login);
+                // user already exists - we cannot register:
+                $errors->add('username_exists',
+                    '<strong>ERROR</strong>: This username is already registered, please choose another one.');
+            } catch (RestAuthResourceNotFound $e) {
+                // user doesn't exist - what we wanted to make sure
+            }
         }
     }
 
