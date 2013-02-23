@@ -494,6 +494,10 @@ description',
         }
 
         $user = new WP_User($user_id);
+
+        // set the default role:
+        $user->set_role(get_option('default_role'));
+
         return $user;
     }
 
