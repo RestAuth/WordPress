@@ -154,9 +154,15 @@ description',
         <?php
     }
 
+    /**
+     * Set the redirect url upon registration.
+     *
+     * Called:
+     * - GET wp-login.php?action=register - Register a new user
+     */
     public function registration_redirect($redirect) {
         if ($redirect === "") {
-            return 'wp-login.php';
+            return site_url('wp-login.php');
         } else {
             return $redirect;
         }
@@ -166,7 +172,12 @@ description',
      * Set the global user_login variable if $_GET['user'] is set.
      *
      * This prefills the login-form with a username, if the appropriate GET
-     * variable is set. This is of course a disgusting misuse of this hook!
+     * variable is set.
+     *
+     * WARNING: This is of course a disgusting misuse of this hook!
+     *
+     * NOTE: This function is currently unused, because the redirect url is
+     *      computed BEFORE the user actually enters any data.
      *
      * Called:
      * - GET wp-login.php - Login a user
