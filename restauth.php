@@ -197,7 +197,6 @@ description',
     public function register($userid) {
         global $wpdb;
 
-        error_log("register user with id '$userid'");
         $user = get_user_by('id', $userid);
         $conn = $this->_get_conn();
 
