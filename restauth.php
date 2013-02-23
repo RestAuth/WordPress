@@ -59,7 +59,7 @@ class RestAuthPlugin {
         // attempt to modify registration form:
         if(isset($_GET['action']) && $_GET['action'] == 'register'){
             add_action('register_form', array(&$this, 'register_form'));
-            add_filter('gettext', array(&$this, 'remove_email_notification_msg'));
+//            add_filter('gettext', array(&$this, 'remove_email_notification_msg'));
         }
 
         // authentication
