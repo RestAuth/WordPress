@@ -249,12 +249,12 @@ description',
 
         $properties = array();
         foreach ($this->get_global_mappings() as $key => $ra_key) {
-            if (isset($user->$key)) {
+            if (isset($user->$key) && !empty($user->$key)) {
                 $properties[$ra_key] = $user->$key;
             }
         }
         foreach ($this->get_local_mappings() as $key => $ra_key) {
-            if (isset($user->$key)) {
+            if (isset($user->$key) && !empty($user->$key)) {
                 $properties['wordpress ' . $ra_key] = $user->$key;
             }
         }
