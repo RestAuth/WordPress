@@ -35,6 +35,10 @@ class RestAuthPlugin {
     private $_local_mappings;
     private $_blacklist;
 
+    private $_normal_properties = array(
+        'user_login', 'user_pass', 'user_email', 'user_url', 'user_nicename',
+        'display_name', 'user_registered');
+
     private $option_name = 'restauth_options';
     var $db_version = 1;
 
@@ -285,19 +289,19 @@ description',
      * Actually authenticate the user.
      */
     public function authenticate($user, $username, $password) {
+        error_log("authentice(" . get_class($user) . ", $username, $password)");
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             return $user;
         }
 
         $ra_user = $this->_get_ra_user($username);
 
-        error_log("authenticating: '$username', '$password'");
         if ($ra_user->verifyPassword($password)) {
             $user = get_user_by('login', $username);
             if ($user) {
                 return $user;
             } elseif (!$user && $this->options['auto_create_user']) {
-                return $this->_create_user($username);
+                return $this->_create_user($username, $password);
             }
         }
         return null;
@@ -318,6 +322,8 @@ description',
 
     /**
      * Update local profile before viewing it.
+     *
+     * @param $user: WP_User
      *
      * Called:
      * - GET wp-admin/profile.php - View your own profile
@@ -458,17 +464,36 @@ description',
     }
 
     /**
-     * Create a new user
+     * Create a new user in the local database.
      *
      * @todo get roles from restauth service
      */
-    private function _create_user($username) {
+    private function _create_user($username, $password) {
         error_log("_create_user '$username'");
+        global $wpdb;
 
-        $user_id = wp_create_user($username, $password);#, $username . ($email_domain ? '@' . $email_domain : ''));
-        $user = get_user_by('id', $user_id);
-        $this->_update_user($user);
+        $userdata = array(
+            'user_login' => $username,
+            'user_pass' => '',
+        );
+        if ($this->options['allow_wp_auth']) {
+            $userdata['user_pass'] = wp_hash_password($password);
+        }
 
+        $userdata = $this->_get_updated_userdata($userdata);
+
+        // insert normal user data (directly in the wp_users table):
+        $normal_userdata = $this->_get_normal_userdata($userdata);
+        $wpdb->insert($wpdb->users, $normal_userdata);
+        $user_id = (int) $wpdb->insert_id;
+
+        // set metadata (the user_metadata table):
+        $meta_userdata = $this->_get_meta_userdata($userdata);
+        foreach ($meta_userdata as $key => $value) {
+            update_user_meta($user_id, $key, $value);
+        }
+
+        $user = new WP_User($user_id);
         return $user;
     }
 
@@ -487,6 +512,8 @@ description',
 
     /**
      * Update a users properties and roles from RestAuth.
+     *
+     * @param $user: @WP_User
      *
      * @seealso edit_user() in wp-admin/includes/user.php
      *
@@ -526,6 +553,75 @@ description',
 
         // finally call wp_update_user
         wp_update_user(get_object_vars($newuser));
+    }
+
+    /**
+     * Take an array of user properties, updates it with data from RestAuth.
+     *
+     * NOTE: This sets all mapped keys, even if not locally present.
+     *      This means that all mapped properties are always present after
+     *      this method. Good for updates, not as good for inserts.
+     */
+    private function _get_updated_userdata($userdata) {
+        $ra_user = $this->_get_ra_user($userdata['user_login']);
+        $ra_props = $ra_user->getProperties();
+
+        foreach ($this->get_global_mappings() as $key => $ra_key) {
+            if (!is_string($ra_props[$ra_key])) {
+                $userdata[$key] = '';
+            } elseif ($ra_props[$ra_key] != $userdata[$key]) {
+                $userdata[$key] = $ra_props[$ra_key];
+            }
+        }
+
+        foreach ($this->get_local_mappings() as $key => $ra_key) {
+            $ra_key = 'wordpress ' . $ra_key;
+
+            if (!is_string($ra_props[$ra_key])) {
+                $userdata[$key] = '';
+            } elseif ($ra_props[$ra_key] != $userdata[$key]) {
+                $userdata[$key] = $ra_props[$ra_key];
+            }
+        }
+
+        return $userdata;
+    }
+
+    /**
+     * Get normal userdata.
+     *
+     * This takes an array and returns a subset of the array that represents
+     * properites that are "normal" userdata. This data is saved directly in
+     * the wp_user table and must be set via $wpdb->insert.
+     */
+    private function _get_normal_userdata($userdata) {
+        $new_data = array();
+
+        foreach ($userdata as $key => $value) {
+            if (in_array($key, $this->_normal_properties)) {
+                $new_data[$key] = $value;
+            }
+        }
+
+        return $new_data;
+    }
+
+    /**
+     * Get meta userdata.
+     *
+     * Like _get_normal_userdata, but returns exactly the opposite subset.
+     * Properties returned by this array must be set with update_user_meta.
+     */
+    private function _get_meta_userdata($userdata) {
+        $new_data = array();
+
+        foreach ($userdata as $key => $value) {
+            if (! in_array($key, $this->_normal_properties)) {
+                $new_data[$key] = $value;
+            }
+        }
+
+        return $new_data;
     }
 
     # Reference: http://codex.wordpress.org/Plugin_API/Action_Reference
