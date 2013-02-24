@@ -304,7 +304,7 @@ description',
                 $this->_update_local_user($user);
                 return $user;
             } elseif (!$user && $this->options['auto_create_user']) {
-                return $this->_create_user($username, $password);
+                return $this->_create_local_user($username, $password);
             }
         }
         return null;
@@ -483,8 +483,8 @@ description',
      *
      * @todo get roles from restauth service
      */
-    private function _create_user($username, $password) {
-        error_log("_create_user '$username'");
+    private function _create_local_user($username, $password) {
+        error_log("_create_local_user '$username'");
         global $wpdb;
 
         $userdata = array(
