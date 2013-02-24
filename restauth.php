@@ -287,9 +287,11 @@ description',
 
     /**
      * Actually authenticate the user.
+     *
+     * @param $user: WP_Error
      */
     public function authenticate($user, $username, $password) {
-        error_log("authentice(" . get_class($user) . ", $username, $password)");
+        error_log("authentice($username, ...)");
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             return $user;
         }
@@ -313,11 +315,18 @@ description',
      *
      * @todo This also interacts with creating new passwords.
      */
-    function check_passwords($username, $pass1, $pass2) {
-        error_log("check_passwords '$username', '$pass1', '$pass2'");
+    function check_passwords($username, &$pass1, &$pass2) {
+        error_log("check_passwords($username, ...)");
+
         if (strlen($pass1) > 0 && strcmp($pass1, $pass2) === 0) {
             $ra_user = $this->_get_ra_user($username);
             $ra_user->setPassword($pass1);
+        }
+
+        // override password to empty strings, so local hash is not updated.
+        if (! $this->options['allow_wp_auth']) {
+            $pass1 = '';
+            $pass2 = '';
         }
     }
 
@@ -575,6 +584,7 @@ description',
                 $userdata[$key] = $ra_props[$ra_key];
             }
         }
+
 
         foreach ($this->get_local_mappings() as $key => $ra_key) {
             $ra_key = 'wordpress ' . $ra_key;
