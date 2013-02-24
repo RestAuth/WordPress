@@ -516,30 +516,22 @@ description',
 
         // synchronize groups
         if ($this->options['auto_sync_groups']) {
-            error_log('### Synchronizing groups...');
             $ra_user = $this->_get_ra_user($user->user_login);
 
             // first, add the default role in RestAuth:
             try {
-                error_log('### Add user to default group');
                 $ra_user->addGroup($default_role);
-                error_log('### Added user to default group');
             } catch (RestAuthResourceNotFound $e) {
-                error_log('### Group not found, creating...');
                 // group does not exist remotely, add it and user to it.
                 $ra_group = RestAuthGroup::create(
                     $this->_get_conn(), $default_role);
-                error_log('### Created group');
                 $ra_group->addUser($ra_user);
-                error_log('### Added user');
             }
 
             $ra_groups = $ra_user->getGroups();
-            error_log('### Got ' . count($ra_groups) . ' groups');
             foreach ($ra_groups as $group) {
                 $user->add_role($group->name);
             }
-            error_log('### Set roles');
         }
 
         return $user;
