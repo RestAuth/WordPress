@@ -527,6 +527,11 @@ description',
      *        another get()
      */
     private function _update_user($user) {
+        // we just updated, don't do anything.
+        if (isset($_GET['updated']) && $_GET['updated'] == 'true') {
+            return;
+        }
+
         global $wpdb;
         error_log("_update_user (" . $_SERVER['REQUEST_METHOD'] . "): " . $user->user_login);
 
