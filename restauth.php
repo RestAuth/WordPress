@@ -301,7 +301,7 @@ description',
         if ($ra_user->verifyPassword($password)) {
             $user = get_user_by('login', $username);
             if ($user) {
-                $this->_update_user($user);
+                $this->_update_local_user($user);
                 return $user;
             } elseif (!$user && $this->options['auto_create_user']) {
                 return $this->_create_user($username, $password);
@@ -343,7 +343,12 @@ description',
      */
     public function personal_options($user) {
         error_log("personal_options");
-        $this->_update_user($user);
+        // we just updated, don't do anything.
+        if (isset($_GET['updated']) && $_GET['updated'] == 'true') {
+            return;
+        }
+
+        $this->_update_local_user($user);
     }
 
     /**
@@ -535,14 +540,9 @@ description',
      * @todo: wp_update_user actually triggers update_user, which causes
      *        another get()
      */
-    private function _update_user($user) {
-        // we just updated, don't do anything.
-        if (isset($_GET['updated']) && $_GET['updated'] == 'true') {
-            return;
-        }
-
+    private function _update_local_user($user) {
         global $wpdb;
-        error_log("_update_user (" . $_SERVER['REQUEST_METHOD'] . "): " . $user->user_login);
+        error_log("_update_local_user (" . $_SERVER['REQUEST_METHOD'] . "): " . $user->user_login);
 
         $userdata = array(
             'user_login' => $user->user_login,
