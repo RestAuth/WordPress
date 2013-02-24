@@ -564,6 +564,17 @@ description',
         foreach ($meta_userdata as $key => $value) {
             update_user_meta($user->ID, $key, $value);
         }
+
+        // synchronize groups
+        if ($this->options['auto_sync_groups']) {
+            $ra_user = $this->_get_ra_user($user->user_login);
+            $ra_groups = $ra_user->getGroups();
+
+            $user->set_role('');  // clear previous roles
+            foreach ($ra_groups as $group) {
+                $user->add_role($group->name);
+            }
+        }
     }
 
     /**
